@@ -24,6 +24,8 @@ func main() {
 
 	go b.StartWebhook(ctx)
 
+	log.Print("Starting the bot server...")
+
 	err := http.ListenAndServe(":2000", b.WebhookHandler())
 	if err != nil {
 		log.Fatal(err)
@@ -34,8 +36,13 @@ func main() {
 }
 
 func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	b.SendMessage(ctx, &bot.SendMessageParams{
+	log.Printf("Got a message %s, and will resend it back.", update.Message.Text)
+
+	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,
 		Text:   update.Message.Text,
 	})
+	if err != nil {
+		log.Print(err)
+	}
 }
