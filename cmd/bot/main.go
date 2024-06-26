@@ -28,8 +28,6 @@ func main() {
 }
 
 func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	log.Printf("Got a message %s, and will resend it back.", update.Message.Text)
-
 	if update.Message != nil {
 		_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
