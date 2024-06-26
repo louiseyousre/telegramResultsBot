@@ -8,6 +8,5 @@ RUN go build -o ./bot ./cmd/bot
 FROM alpine:latest AS runner
 WORKDIR /app
 COPY --from=builder /app/bot .
-EXPOSE 2000
 ENTRYPOINT ["./bot"]
 
