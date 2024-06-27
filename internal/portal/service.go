@@ -1,13 +1,11 @@
 package portal
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 )
 
@@ -31,22 +29,7 @@ func NewService() *Service {
 	return &Service{
 		httpClient: &http.Client{},
 	}
-}
 
-func createLoginRequest(username, password string) (*http.Request, error) {
-	data := url.Values{
-		"UserName": {username},
-		"Password": {password},
-	}
-
-	req, err := http.NewRequest("POST", loginEndpoint, bytes.NewBufferString(data.Encode()))
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
-
-	return req, nil
 }
 
 func (p *Service) Login(username, password string) (*http.Cookie, error) {
@@ -58,7 +41,7 @@ func (p *Service) Login(username, password string) (*http.Cookie, error) {
 	var resp *http.Response
 	resp, err = p.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("error sending request: %w", err)
+		return nil, fmt.Errorf("error sending login request: %w", err)
 	}
 	defer func(resp *http.Response) {
 		_ = resp.Body.Close()
@@ -75,56 +58,13 @@ func (p *Service) Login(username, password string) (*http.Cookie, error) {
 	return nil, ErrInvalidCredentials
 }
 
-type StudentResult struct {
-	ScopeName string `json:"ScopeName"`
-	Year      string `json:"Year"`
-	Ds        []struct {
-		GradeName        *string `json:"GradeName"`
-		Percent          *string `json:"Percent"`
-		Total            *string `json:"Total"`
-		StudyYearCourses []struct {
-			GradeName string `json:"GradeName"`
-			Parts     []struct {
-				DegreesType    []string `json:"DegreesType"`
-				DegreesMax     string   `json:"DegreesMax"`
-				Degrees        []string `json:"Degrees"`
-				CoursePartName string   `json:"CoursePartName"`
-				SemasterName   string   `json:"SemasterName"`
-			} `json:"Parts"`
-			CourseName  string `json:"CourseName"`
-			SuccessFlag string `json:"SuccessFlag"`
-			Max         string `json:"Max"`
-			Total       string `json:"Total"`
-		} `json:"StudyYearCourses"`
-	} `json:"ds"`
-}
-
-func createGetResultsRequest(cookie *http.Cookie, uuid string) (*http.Request, error) {
-	data := url.Values{
-		"param0": {"Portal.Results"},
-		"param1": {"GetAllResults"},
-		"param2": {fmt.Sprintf("{\"UUID\":\"%s\"}", uuid)},
-	}
-
-	req, err := http.NewRequest("POST", getJCIEndpoint, bytes.NewBufferString(data.Encode()))
-	if err != nil {
-		return nil, fmt.Errorf("error creating request: %w", err)
-	}
-
-	req.AddCookie(cookie)
-
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
-
-	return req, nil
-}
-
 func (p *Service) GetResults(cookie *http.Cookie, uuid string) (*[]StudentResult, error) {
 	req, err := createGetResultsRequest(cookie, uuid)
 
 	var resp *http.Response
 	resp, err = p.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("error sending request: %w", err)
+		return nil, fmt.Errorf("error sending get results request: %w", err)
 	}
 	defer func(resp *http.Response) {
 		_ = resp.Body.Close()
@@ -133,12 +73,12 @@ func (p *Service) GetResults(cookie *http.Cookie, uuid string) (*[]StudentResult
 	var body []byte
 	body, err = io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("error reading response: %w", err)
+		return nil, fmt.Errorf("error reading get results response: %w", err)
 	}
 
 	var response []StudentResult
 	if err = json.Unmarshal(body, &response); err != nil {
-		return nil, fmt.Errorf("error parsing response: %w", err)
+		return nil, fmt.Errorf("error parsing get results response: %w", err)
 	}
 
 	return &response, nil
@@ -258,39 +198,16 @@ func FormatResults(results *[]StudentResult) (*string, error) {
 	return &resultString, nil
 }
 
-type StudentData struct {
-	CollageID   string `json:"CollageID"`
-	ImagePath   string `json:"ImagePath"`
-	UUID        string `json:"UUID"`
-	Collage     string `json:"Collage"`
-	ScopeUUID   string `json:"ScopeUUID"`
-	StdName     string `json:"StdName"`
-	Year        string `json:"Year"`
-	ShowMessage string `json:"ShowMessage"`
-	ID          int64  `json:"ID"`
-	StudyYear   string `json:"StudyYear"`
-}
-
 func (p *Service) GetStudentData(cookie *http.Cookie) (*StudentData, error) {
-	data := url.Values{
-		"param0": {"Portal.General"},
-		"param1": {"GetStudentPortalData"},
-		"param2": {"{\"UserID\":\"\"}"},
-	}
-
-	req, err := http.NewRequest("POST", getJCIEndpoint, bytes.NewBufferString(data.Encode()))
+	req, err := createGetStudentDataRequest(cookie)
 	if err != nil {
-		return nil, fmt.Errorf("error creating request: %w", err)
+		return nil, fmt.Errorf("error creating get student data request: %w", err)
 	}
-
-	req.AddCookie(cookie)
-
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
 
 	var resp *http.Response
 	resp, err = p.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("error sending request: %w", err)
+		return nil, fmt.Errorf("error sending get student data request: %w", err)
 	}
 	defer func(resp *http.Response) {
 		_ = resp.Body.Close()
@@ -299,12 +216,12 @@ func (p *Service) GetStudentData(cookie *http.Cookie) (*StudentData, error) {
 	var body []byte
 	body, err = io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("error reading response: %w", err)
+		return nil, fmt.Errorf("error reading get student data response: %w", err)
 	}
 
 	response := &[]StudentData{}
 	if err = json.Unmarshal(body, response); err != nil {
-		return nil, fmt.Errorf("error parsing response: %w", err)
+		return nil, fmt.Errorf("error parsing get student data response: %w", err)
 	}
 
 	return &(*response)[0], nil
