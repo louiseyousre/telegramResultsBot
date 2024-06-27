@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -107,8 +106,6 @@ func createGetResultsRequest(cookie *http.Cookie, uuid string) (*http.Request, e
 		"param2": {fmt.Sprintf("{\"UUID\":\"%s\"}", uuid)},
 	}
 
-	log.Print(bytes.NewBufferString(data.Encode()).String())
-
 	req, err := http.NewRequest("POST", getJCIEndpoint, bytes.NewBufferString(data.Encode()))
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
@@ -169,13 +166,13 @@ func FormatResults(results *[]StudentResult) (*string, error) {
 	var builder strings.Builder
 
 	for resultsIndex, result := range *results {
+		if len(result.Ds) < 1 {
+			continue
+		}
+
 		if name, err := GetFirstTranslation(result.ScopeName); err == nil {
 			builder.WriteString(fmt.Sprintf("⬅ %s (%s)", *name, result.Year))
 		} else {
-			return nil, ErrMalformedResults
-		}
-
-		if len(result.Ds) < 1 {
 			return nil, ErrMalformedResults
 		}
 
