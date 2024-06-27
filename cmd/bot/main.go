@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -217,9 +219,24 @@ func (r *resultsBot) getResultsHandler(ctx context.Context, b *bot.Bot, update *
 		return
 	}
 
-	message, err = b.SendMessage(ctx, &bot.SendMessageParams{
+	var photo *models.InputFileUpload
+	photo, err = getStudentPhoto(data.ImagePath)
+	if err != nil {
+		log.Print(err)
+
+		_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID:          message.ID,
+			Text:            "معلهش متأسفين. حصل خطأ مش عارفينه إيه هو بالظبط ولكن هنحاول نشوفه إيه هو ولو ينفع يتصلح من عندنا هنصلحه.",
+			ReplyParameters: replyParametersTo(message),
+		})
+
+		return
+	}
+
+	message, err = b.SendPhoto(ctx, &bot.SendPhotoParams{
 		ChatID:          update.Message.Chat.ID,
-		Text:            fmt.Sprintf("جبنا بياناتك بنجاح يا %s، حد قالك إنك حد جميل وشكلك حلو ❤️ ثواني هنجيب النتيجة بقى.", *studentName),
+		Photo:           photo,
+		Caption:         fmt.Sprintf("جبنا بياناتك بنجاح يا %s، حد قالك إنك حد جميل وشكلك حلو ❤️ ثواني هنجيب النتيجة بقى.", *studentName),
 		ReplyParameters: replyParametersTo(message),
 	})
 	if err != nil {
@@ -293,36 +310,31 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	}
 }
 
-//func getStudentPhoto(ctx context.Context, chatId int64, imagePath string) (*bot.SendPhotoParams, error) {
-//	// Make a GET request to download the image
-//	resp, err := http.Get("http://stda.minia.edu.eg" + imagePath)
-//	if err != nil {
-//		return nil, fmt.Errorf("error downloading image, %v\n", err)
-//	}
-//	defer func(resp *http.Response) {
-//		_ = resp.Body.Close()
-//	}(resp)
-//
-//	// Check if the request was successful
-//	if resp.StatusCode != http.StatusOK {
-//		return nil, fmt.Errorf("error: received non-200 response code %d\n", resp.StatusCode)
-//	}
-//
-//	// Read the image data from the response body
-//	var imageData []byte
-//	imageData, err = io.ReadAll(resp.Body)
-//	if err != nil {
-//		return nil, fmt.Errorf("error reading image data, %v\n", err)
-//	}
-//
-//	// Create a new reader for the image data
-//	imageReader := bytes.NewReader(imageData)
-//
-//	// Prepare the parameters for sending the photo
-//	return &bot.SendPhotoParams{
-//		ChatID:  chatId,
-//		Photo:   &models.InputFileUpload{Filename: "student_photo.jpg", Data: imageReader},
-//		Caption: "صورة أجمل طالب",
-//	}, nil
-//
-//}
+func getStudentPhoto(imagePath string) (*models.InputFileUpload, error) {
+	// Make a GET request to download the image
+	resp, err := http.Get("http://stda.minia.edu.eg" + imagePath)
+	if err != nil {
+		return nil, fmt.Errorf("error downloading image, %v\n", err)
+	}
+	defer func(resp *http.Response) {
+		_ = resp.Body.Close()
+	}(resp)
+
+	// Check if the request was successful
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error: received non-200 response code %d\n", resp.StatusCode)
+	}
+
+	// Read the image data from the response body
+	var imageData []byte
+	imageData, err = io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading image data, %v\n", err)
+	}
+
+	// Create a new reader for the image data
+	imageReader := bytes.NewReader(imageData)
+
+	// Prepare the parameters for the photo
+	return &models.InputFileUpload{Filename: "student_photo.jpg", Data: imageReader}, nil
+}
