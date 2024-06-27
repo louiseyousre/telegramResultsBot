@@ -62,6 +62,8 @@ func main() {
 
 	rbot := newResultsBot()
 
+	b.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeExact, startHandler)
+
 	b.RegisterHandlerMatchFunc(matchGetResults, rbot.getResultsHandler)
 
 	log.Print("Starting the bot server...")
@@ -112,10 +114,10 @@ func (r *resultsBot) getResultsHandler(ctx context.Context, b *bot.Bot, update *
 	textLines := strings.Split(strings.ReplaceAll(strings.TrimSpace(update.Message.Text), "\r\n", "\n"), "\n")
 
 	nationalID := strings.TrimSpace(textLines[0])
-	if len(nationalID) != 16 {
+	if len(nationalID) != 14 {
 		_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID:          update.Message.Chat.ID,
-			Text:            "السطر الأول في الرسالة اللي بعتها مفيهاش رقم قومي صح لأنه المفروض يبقى 16 رقم. إتأكد تاني وابعت من جديد.",
+			Text:            "السطر الأول في الرسالة اللي بعتها مفيهاش رقم قومي صح لأنه المفروض يبقى 14 رقم. إتأكد تاني وابعت من جديد.",
 			ReplyParameters: replyParametersTo(update.Message),
 		})
 
@@ -263,6 +265,19 @@ func (r *resultsBot) getResultsHandler(ctx context.Context, b *bot.Bot, update *
 		Text:            *formattedResults,
 		ReplyParameters: replyParametersTo(message),
 	})
+}
+
+func startHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	if update.Message != nil {
+		_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID:          update.Message.Chat.ID,
+			Text:            "يا مرحب بيك يا صديقي. علشان تجيب النتيجة ابعت رسالة عبارة عن سطرين، السطر الأول منهم فيه الرقم القومي (14 رقم) والسطر التاني في الباسورد بتاعك وإبعت.",
+			ReplyParameters: replyParametersTo(update.Message),
+		})
+		if err != nil {
+			log.Print(err)
+		}
+	}
 }
 
 func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
