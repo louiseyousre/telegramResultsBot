@@ -12,6 +12,15 @@ import (
 	"telegramResultsBot/internal/portal"
 )
 
+const (
+	startMessage              = "يا مرحب بيك يا صديقي. علشان تجيب النتيجة ابعت رسالة عبارة عن سطرين، السطر الأول منهم فيه الرقم القومي (14 رقم) والسطر التاني في الباسورد بتاعك وإبعت."
+	invalidMessage            = "بص يا صديقي البوت دا مبيفهمش أي حاجة غير إنك تكتب الرقم القومي في السطر الأول والباسورد في السطر التاني، وبكدا هيحاول يجيب النتيجة بتاعتك ويبعتهالك."
+	malformedResponseMessage  = "البيانات اللي جات من الموقع مش سليمة ممكن يكون فيه مشكلة دلوقتي أو يكون البوت قدم والموقع حصل فيه تغييرات."
+	malformedResultsMessage   = "النتيجة اللي جات من الموقع مش سليمة ممكن يكون فيه مشكلة دلوقتي أو يكون البوت قدم والموقع حصل فيه تغييرات."
+	unexpectedMessage         = "معلهش متأسفين. حصل خطأ مش عارفينه إيه هو بالظبط ولكن هنحاول نشوفه إيه هو ولو ينفع يتصلح من عندنا هنصلحه."
+	invalidCredentialsMessage = "راجع بيانات الدخول تاني كدا الموقع مش قابلها. إفتكر إن الرقم القومي تكتبه في السطر الأول والباسورد في السطر التاني."
+)
+
 type bot struct {
 	portalService *portal.Service
 }
@@ -88,13 +97,13 @@ func (r *bot) getResultsHandler(ctx context.Context, b *telegramBot.Bot, update 
 		if errors.Is(err, portal.ErrInvalidCredentials) {
 			_, err = b.SendMessage(ctx, &telegramBot.SendMessageParams{
 				ChatID:          update.Message.Chat.ID,
-				Text:            "راجع بيانات الدخول تاني كدا الموقع مش قابلها. إفتكر إن الرقم القومي تكتبه في السطر الأول والباسورد في السطر التاني.",
+				Text:            invalidCredentialsMessage,
 				ReplyParameters: replyParametersTo(update.Message),
 			})
 		} else {
 			_, err = b.SendMessage(ctx, &telegramBot.SendMessageParams{
 				ChatID:          message.ID,
-				Text:            "معلهش متأسفين. حصل خطأ مش عارفينه إيه هو بالظبط ولكن هنحاول نشوفه إيه هو ولو ينفع يتصلح من عندنا هنصلحه.",
+				Text:            unexpectedMessage,
 				ReplyParameters: replyParametersTo(message),
 			})
 		}
@@ -121,7 +130,7 @@ func (r *bot) getResultsHandler(ctx context.Context, b *telegramBot.Bot, update 
 
 		_, err = b.SendMessage(ctx, &telegramBot.SendMessageParams{
 			ChatID:          update.Message.Chat.ID,
-			Text:            "معلهش متأسفين. حصل خطأ مش عارفينه إيه هو بالظبط ولكن هنحاول نشوفه إيه هو ولو ينفع يتصلح من عندنا هنصلحه.",
+			Text:            unexpectedMessage,
 			ReplyParameters: replyParametersTo(message),
 		})
 
@@ -134,7 +143,7 @@ func (r *bot) getResultsHandler(ctx context.Context, b *telegramBot.Bot, update 
 
 		_, err = b.SendMessage(ctx, &telegramBot.SendMessageParams{
 			ChatID:          update.Message.Chat.ID,
-			Text:            "البيانات اللي جات من الموقع مش سليمة ممكن يكون فيه مشكلة دلوقتي أو يكون البوت قدم والموقع حصل فيه تغييرات.",
+			Text:            malformedResponseMessage,
 			ReplyParameters: replyParametersTo(message),
 		})
 
@@ -152,7 +161,7 @@ func (r *bot) getResultsHandler(ctx context.Context, b *telegramBot.Bot, update 
 
 		_, err = b.SendMessage(ctx, &telegramBot.SendMessageParams{
 			ChatID:          message.ID,
-			Text:            "معلهش متأسفين. حصل خطأ مش عارفينه إيه هو بالظبط ولكن هنحاول نشوفه إيه هو ولو ينفع يتصلح من عندنا هنصلحه.",
+			Text:            unexpectedMessage,
 			ReplyParameters: replyParametersTo(message),
 		})
 
@@ -175,7 +184,7 @@ func (r *bot) getResultsHandler(ctx context.Context, b *telegramBot.Bot, update 
 		log.Print(err)
 		_, err = b.SendMessage(ctx, &telegramBot.SendMessageParams{
 			ChatID:          update.Message.Chat.ID,
-			Text:            "معلهش متأسفين. حصل خطأ مش عارفينه إيه هو بالظبط ولكن هنحاول نشوفه إيه هو ولو ينفع يتصلح من عندنا هنصلحه.",
+			Text:            unexpectedMessage,
 			ReplyParameters: replyParametersTo(message),
 		})
 		return
@@ -189,13 +198,13 @@ func (r *bot) getResultsHandler(ctx context.Context, b *telegramBot.Bot, update 
 		if errors.Is(err, portal.ErrMalformedResults) {
 			_, err = b.SendMessage(ctx, &telegramBot.SendMessageParams{
 				ChatID:          update.Message.Chat.ID,
-				Text:            "النتيجة اللي جات من الموقع مش سليمة ممكن يكون فيه مشكلة دلوقتي أو يكون البوت قدم والموقع حصل فيه تغييرات.",
+				Text:            malformedResultsMessage,
 				ReplyParameters: replyParametersTo(message),
 			})
 		} else {
 			_, err = b.SendMessage(ctx, &telegramBot.SendMessageParams{
 				ChatID:          update.Message.Chat.ID,
-				Text:            "معلهش متأسفين. حصل خطأ مش عارفينه إيه هو بالظبط ولكن هنحاول نشوفه إيه هو ولو ينفع يتصلح من عندنا هنصلحه.",
+				Text:            unexpectedMessage,
 				ReplyParameters: replyParametersTo(message),
 			})
 		}
@@ -214,7 +223,7 @@ func (_ *bot) startHandler(ctx context.Context, b *telegramBot.Bot, update *mode
 	if update.Message != nil {
 		_, err := b.SendMessage(ctx, &telegramBot.SendMessageParams{
 			ChatID:          update.Message.Chat.ID,
-			Text:            "يا مرحب بيك يا صديقي. علشان تجيب النتيجة ابعت رسالة عبارة عن سطرين، السطر الأول منهم فيه الرقم القومي (14 رقم) والسطر التاني في الباسورد بتاعك وإبعت.",
+			Text:            startMessage,
 			ReplyParameters: replyParametersTo(update.Message),
 		})
 		if err != nil {
@@ -227,7 +236,7 @@ func (_ *bot) defaultHandler(ctx context.Context, b *telegramBot.Bot, update *mo
 	if update.Message != nil {
 		_, err := b.SendMessage(ctx, &telegramBot.SendMessageParams{
 			ChatID:          update.Message.Chat.ID,
-			Text:            "بص يا صديقي البوت دا مبيفهمش أي حاجة غير إنك تكتب الرقم القومي في السطر الأول والباسورد في السطر التاني، وبكدا هيحاول يجيب النتيجة بتاعتك ويبعتهالك.",
+			Text:            invalidMessage,
 			ReplyParameters: replyParametersTo(update.Message),
 		})
 		if err != nil {
