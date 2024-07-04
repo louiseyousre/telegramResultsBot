@@ -1,7 +1,9 @@
 FROM golang:1.22-alpine AS builder
 WORKDIR /app
-COPY . .
+COPY go.mod .
+COPY go.sum .
 RUN go mod download
+COPY . .
 RUN go build -o ./bot ./cmd/bot
 
 
